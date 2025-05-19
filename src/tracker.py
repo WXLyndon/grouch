@@ -19,4 +19,15 @@ crns = sys.argv[2:]
 courses = [Course(crn, term) for crn in crns]
 
 lst = CourseList(courses)
-lst.run_notifiers()
+
+print(f"Starting continuous monitoring for CRNs: {', '.join(crns)}")
+print("Press Ctrl+C to stop monitoring")
+print("-" * 50)
+
+try:
+    # while True:
+    lst.run_notifiers()
+        # print(f"\nNext check in 1 minute... ({datetime.now().strftime('%Y-%m-%d %H:%M:%S')})")
+        # time.sleep(60)  # Sleep for 1 minute
+except KeyboardInterrupt:
+    print("\nMonitoring stopped by user")

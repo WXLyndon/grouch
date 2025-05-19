@@ -1,26 +1,22 @@
-from pynotifier import Notification
+from plyer import notification
 import time, pathlib
 
-def __always_true():
+def always_true():
     return True
 
 class Notifier:
-    def __always_true():
-        return True
-
-    def __init__(self, title: str, info: str, state = __always_true):
+    def __init__(self, title: str, info: str, state=always_true):
         self.title, self.info = title, info
         self.status_check = state
 
     def send(self):
         dir = pathlib.Path(__file__).parent.absolute().as_posix() + '/grouch.ico'
-        Notification(
+        notification.notify(
             title=self.title,
-            description=self.info,
-            icon_path=dir,
-            duration=7,
-            urgency=Notification.URGENCY_CRITICAL
-        ).send()
+            message=self.info,
+            app_icon=dir,
+            timeout=7
+        )
         time.sleep(7)
 
     def run(self):

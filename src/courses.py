@@ -2,6 +2,8 @@ import requests, time, platform
 from bs4 import BeautifulSoup
 import notifier, notifierMac
 import re
+import time
+from datetime import datetime
 
 class Course:
     def __init__(self, crn: str, term: str):
@@ -51,21 +53,51 @@ class Course:
         url = 'https://oscar.gatech.edu/bprod/bwckschd.p_disp_detail_sched?term_in='
         url += term + '&crn_in=' + self.crn
 
-        with requests.Session() as s:
-            with s.get(url) as page:
-                soup = BeautifulSoup(page.content, 'html.parser')
-                table = soup.find('caption', string='Registration Availability').find_parent('table')
+        try:
+            with requests.Session() as s:
+                with s.get(url) as page:
+                    soup = BeautifulSoup(page.content, 'html.parser')
+                    table = soup.find('caption', string='Registration Availability')
+                    
+                    if table is None:
+                        print(f"Warning: Could not find registration information for CRN {self.crn}")
+                        print("This might be because:")
+                        print("1. The course is no longer available")
+                        print("2. The CRN is invalid")
+                        print("3. The term is incorrect")
+                        print(f"URL: {url}")
+                        return [0, 0, 0, 0, 0, 0]  # Return default values
+                    
+                    table = table.find_parent('table')
+                    if table is None:
+                        print(f"Warning: Could not find registration table for CRN {self.crn}")
+                        return [0, 0, 0, 0, 0, 0]  # Return default values
 
-                if len(table) == 0: raise ValueError()
-
-                data = [int(info.getText()) for info in table.findAll('td', class_='dddefault')]
-                return data
+                    data = [int(info.getText()) for info in table.findAll('td', class_='dddefault')]
+                    return data
+        except requests.RequestException as e:
+            print(f"Network error while fetching data for CRN {self.crn}: {str(e)}")
+            return [0, 0, 0, 0, 0, 0]  # Return default values
+        except Exception as e:
+            print(f"Error processing data for CRN {self.crn}: {str(e)}")
+            return [0, 0, 0, 0, 0, 0]  # Return default values
 
     def get_registration_info(self, term: str):
         self.term = term
         data = self.__get_registration_info(term)
 
-        if len(data) < 6: raise ValueError()
+        if len(data) < 6:
+            print(f"Warning: Invalid data received for CRN {self.crn}")
+            return {
+                'seats': 0,
+                'taken': 0,
+                'vacant': 0,
+                'waitlist': {
+                    'seats': 0,
+                    'taken': 0,
+                    'vacant': 0
+                }
+            }
 
         waitlist_data = {
             'seats': data[3],
@@ -133,22 +165,24 @@ class CourseList:
                 notif = WaitlistNotifierMac(course) if platform.system() == "Darwin" else WaitlistNotifier(course)
                 print(course)
                 notif.run_async()
-                self.courses.remove(course)
+                # self.courses.remove(course)
             time.sleep(0.025)
 
     def run_available_courses(self):
         for course in self.courses:
+            print(course)
             if course.is_open():
                 notif = OpenCourseNotifierMac(course) if platform.system() == "Darwin" else OpenCourseNotifier(course)
-                print(course)
                 notif.run_async()
-                self.courses.remove(course)
+                # self.courses.remove(course)
             time.sleep(0.025)
 
     def run_notifiers(self):
-        while self.courses:
+        while self.courses:  
             self.run_available_courses()
-            self.run_waitlist_notifiers()
+            print(f"\nNext check in 30 seconds... ({datetime.now().strftime('%Y-%m-%d %H:%M:%S')})\n")
+            time.sleep(30) # sleep for 30 seconds
+            # self.run_waitlist_notifiers()
     
     def get_info(self):
         cnt = 0
