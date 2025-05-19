@@ -156,8 +156,9 @@ class OpenCourseNotifierMac(notifierMac.Notifier):
         self.info, self.status_check = course.name, course.is_open
 
 class CourseList:
-    def __init__(self, courses):
+    def __init__(self, courses, sleep_time=30):
         self.courses = courses
+        self.sleep_time = sleep_time
 
     def run_waitlist_notifiers(self):
         for course in self.courses:
@@ -180,8 +181,8 @@ class CourseList:
     def run_notifiers(self):
         while self.courses:  
             self.run_available_courses()
-            print(f"\nNext check in 30 seconds... ({datetime.now().strftime('%Y-%m-%d %H:%M:%S')})\n")
-            time.sleep(30) # sleep for 30 seconds
+            print(f"\nNext check in {self.sleep_time} seconds... ({datetime.now().strftime('%Y-%m-%d %H:%M:%S')})\n")
+            time.sleep(self.sleep_time) # sleep for specified time
             # self.run_waitlist_notifiers()
     
     def get_info(self):

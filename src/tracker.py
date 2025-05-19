@@ -1,12 +1,16 @@
 import sys
+import argparse
 from courses import Course, CourseList
 from datetime import datetime
 
-if len(sys.argv) < 3:
-    print("Could not run Grouch; include the desired upcoming term (Fall, Spring, Summer) and use at least one CRN")
-    sys.exit(1)
+parser = argparse.ArgumentParser(description='Monitor course availability')
+parser.add_argument('season', help='Desired upcoming term (Fall, Spring, Summer)')
+parser.add_argument('crns', nargs='+', help='CRN numbers to monitor')
+parser.add_argument('-t', '--time', type=int, default=30, help='Sleep time in seconds between checks (default: 30)')
 
-season = sys.argv[1]
+args = parser.parse_args()
+
+season = args.season
 now = datetime.now()
 term = ''
 
@@ -15,19 +19,16 @@ if season.lower() == 'spring':
 else:
     term = f'{now.year}' + '05' if season.lower() == 'summer' else f'{now.year}' + '08'
 
-crns = sys.argv[2:]
-courses = [Course(crn, term) for crn in crns]
+courses = [Course(crn, term) for crn in args.crns]
 
-lst = CourseList(courses)
+lst = CourseList(courses, sleep_time=args.time)
 
-print(f"Starting continuous monitoring for CRNs: {', '.join(crns)}")
+print(f"Starting continuous monitoring for CRNs: {', '.join(args.crns)}")
+print(f"Sleep time between checks: {args.time} seconds")
 print("Press Ctrl+C to stop monitoring")
 print("-" * 50)
 
 try:
-    # while True:
     lst.run_notifiers()
-        # print(f"\nNext check in 1 minute... ({datetime.now().strftime('%Y-%m-%d %H:%M:%S')})")
-        # time.sleep(60)  # Sleep for 1 minute
 except KeyboardInterrupt:
     print("\nMonitoring stopped by user")
