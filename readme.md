@@ -18,6 +18,30 @@ To use this project, you need Python 3.8+ installed as well as pip on your devic
 
 And that's it! The library is now installed and ready to be used.
 
+### Linux users: extra step for notifications
+
+If you are on Linux and using notifications, you’ll need development libraries for `dbus-python`.  
+Run this before installing the Python dependencies:
+
+Debian/Ubuntu:
+
+```bash
+sudo apt update
+sudo apt install -y libdbus-1-dev libglib2.0-dev pkg-config
+```
+
+Fedora:
+
+```bash
+sudo dnf install dbus-devel glib2-devel pkg-config
+```
+
+Arch:
+
+```bash
+sudo pacman -S dbus glib pkgconf
+```
+
 ## Usage
 
 ### Tracker
