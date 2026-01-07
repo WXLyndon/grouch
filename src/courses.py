@@ -6,28 +6,57 @@ import time
 from datetime import datetime
 
 class Course:
+    HEADERS = {
+        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+    }
+    BASE_URL = 'https://registration.banner.gatech.edu/StudentRegistrationSsb/ssb'
+
     def __init__(self, crn: str, term: str):
         self.crn = crn
-        self.term = term # default
-        url = 'https://oscar.gatech.edu/bprod/bwckschd.p_disp_detail_sched?term_in='
-        url += self.term + '&crn_in=' + self.crn
-        with requests.Session() as s:
-            with s.get(url) as page:
-                soup = BeautifulSoup(page.content, 'html.parser')
-                headers = soup.find_all('th', class_="ddlabel")
-                self.name = headers[0].getText()
+        self.term = term
+        self._session = None
+        self._init_session()
+        self._fetch_course_name()
+
+    def _init_session(self):
+        """Initialize session and set term"""
+        self._session = requests.Session()
+        self._session.headers.update(Course.HEADERS)
+        term_url = f'{Course.BASE_URL}/term/search?mode=search'
+        self._session.post(term_url, data={'term': self.term})
+
+    def _fetch_course_name(self):
+        """Fetch course name from Banner API using getClassDetails"""
+        url = f'{Course.BASE_URL}/searchResults/getClassDetails?term={self.term}&courseReferenceNumber={self.crn}'
+        response = self._session.get(url)
+        
+        if response.status_code != 200:
+            raise ValueError(f"Failed to fetch course data. HTTP status: {response.status_code}")
+        
+        soup = BeautifulSoup(response.text, 'html.parser')
+        
+        # Check if course exists
+        crn_span = soup.find('span', id='courseReferenceNumber')
+        if not crn_span:
+            raise ValueError(f"Course not found. CRN '{self.crn}' may be invalid for term '{self.term}'.")
+        
+        # Extract course info
+        subject = soup.find('span', id='subject')
+        course_num = soup.find('span', id='courseNumber')
+        section = soup.find('span', id='sectionNumber')
+        title = soup.find('span', id='courseTitle')
+        
+        subject_text = subject.get_text(strip=True) if subject else ''
+        course_num_text = course_num.get_text(strip=True) if course_num else ''
+        section_text = section.get_text(strip=True) if section else ''
+        title_text = title.get_text(strip=True) if title else ''
+        
+        self.name = f"{subject_text} {course_num_text} - {section_text} - {title_text}"
 
     def __get_prereqs(self):
-        url = 'https://oscar.gatech.edu/bprod/bwckschd.p_disp_detail_sched?term_in='
-        url += self.term + '&crn_in=' + self.crn
-
-        with requests.Session() as s:
-            with s.get(url) as page:
-                soup = BeautifulSoup(page.content, 'html.parser')
-                p = soup.find('td', class_="dddefault")
-                txt = p.getText()
-                idx = txt.index("Prerequisites:")
-                return txt[idx:len(txt)-4]
+        # Note: Prerequisites are not directly available in the new Banner API
+        # This would require additional scraping or API calls
+        return "None"
     
     def __is_not_fodder(self, s: str) -> bool:
         fodder = ['undergraduate', 'graduate', 'level', 'grade', 'of', 'minimum', 'semester']
@@ -37,50 +66,49 @@ class Course:
         return True
 
     def get_prereqs(self):
-        try:
-            raw = self.__get_prereqs()
-            block = ' '.join(list(filter(lambda el: self.__is_not_fodder(el), raw[raw.index("\n")+3:].split())))
-            els = re.findall('\[[^\]]*\]|\([^\)]*\)|\"[^\"]*\"|\S+', block)
-            parsed = ' '.join(els).replace('(Undergraduate ','(')
-            return parsed
-        except:
-            return "None"
+        return self.__get_prereqs()
 
     def has_name(self) -> bool:
         return self.name != None
-    
+
     def __get_registration_info(self, term: str):
-        url = 'https://oscar.gatech.edu/bprod/bwckschd.p_disp_detail_sched?term_in='
-        url += term + '&crn_in=' + self.crn
-
+        """Fetch enrollment info from Banner API using getEnrollmentInfo"""
+        self.term = term
+        
+        # Re-init session if term changed
+        if not self._session:
+            self._init_session()
+        
+        url = f'{Course.BASE_URL}/searchResults/getEnrollmentInfo?term={term}&courseReferenceNumber={self.crn}'
+        
         try:
-            with requests.Session() as s:
-                with s.get(url) as page:
-                    soup = BeautifulSoup(page.content, 'html.parser')
-                    table = soup.find('caption', string='Registration Availability')
-                    
-                    if table is None:
-                        print(f"Warning: Could not find registration information for CRN {self.crn}")
-                        print("This might be because:")
-                        print("1. The course is no longer available")
-                        print("2. The CRN is invalid")
-                        print("3. The term is incorrect")
-                        print(f"URL: {url}")
-                        return [0, 0, 0, 0, 0, 0]  # Return default values
-                    
-                    table = table.find_parent('table')
-                    if table is None:
-                        print(f"Warning: Could not find registration table for CRN {self.crn}")
-                        return [0, 0, 0, 0, 0, 0]  # Return default values
-
-                    data = [int(info.getText()) for info in table.findAll('td', class_='dddefault')]
-                    return data
-        except requests.RequestException as e:
-            print(f"Network error while fetching data for CRN {self.crn}: {str(e)}")
-            return [0, 0, 0, 0, 0, 0]  # Return default values
+            response = self._session.get(url)
+            if response.status_code != 200:
+                print(f"Warning: Could not find registration information for CRN {self.crn}")
+                return [0, 0, 0, 0, 0, 0]
+            
+            soup = BeautifulSoup(response.text, 'html.parser')
+            
+            # Parse enrollment info from HTML
+            def extract_value(label):
+                for span in soup.find_all('span', class_='status-bold'):
+                    if label in span.get_text():
+                        next_span = span.find_next('span', dir='ltr')
+                        if next_span:
+                            return int(next_span.get_text(strip=True))
+                return 0
+            
+            max_enrollment = extract_value('Enrollment Maximum')
+            enrollment = extract_value('Enrollment Actual')
+            seats_available = extract_value('Enrollment Seats Available')
+            wait_capacity = extract_value('Waitlist Capacity')
+            wait_count = extract_value('Waitlist Actual')
+            wait_available = extract_value('Waitlist Seats Available')
+            
+            return [max_enrollment, enrollment, seats_available, wait_capacity, wait_count, wait_available]
         except Exception as e:
             print(f"Error processing data for CRN {self.crn}: {str(e)}")
-            return [0, 0, 0, 0, 0, 0]  # Return default values
+            return [0, 0, 0, 0, 0, 0]
 
     def get_registration_info(self, term: str):
         self.term = term
