@@ -1,5 +1,19 @@
 # Grouch
 
+## Project Notice
+
+This project is based on the open-source project **grouch** originally developed by JIceberg.  
+It has undergone significant modifications and extensions, and is now maintained as an **independent project**.
+
+- Original project: https://github.com/JIceberg/grouch
+- Original license: GPL-3.0
+
+This project is distributed under the GNU General Public License v3.0 (GPL-3.0).  
+All required copyright notices and license texts from the original project are preserved.
+
+Copyright (c) 2025–present WXLyndon  
+Some portions of the code are copyrighted by the original author.
+
 ## About
 
 A registration aid for [Oscar](https://oscar.gatech.edu). Simple, effective, and customizable. No login necessary. Grouch is a Python library for getting registration info for all your classes. It sends notifications using [py-notifier](https://pypi.org/project/py-notifier/) to your computer.
@@ -10,7 +24,7 @@ Oscar is a garbage site, but at least they allow students to see course info wit
 
 To use this project, you need Python 3.8+ installed as well as pip on your device.
 
-- Clone the library `git clone https://github.com/JIceberg/grouch.git`
+- Clone the library `git clone https://github.com/WXLyndon/grouch.git`
 
 - Open the root of the project and open a CLI (command line interface) like powershell
 
