@@ -22,7 +22,7 @@ Oscar is a garbage site, but at least they allow students to see course info wit
 
 ## Installation
 
-To use this project, you need Python 3.8+ installed as well as pip on your device.
+To use this project, you need Python 3.10+ installed as well as pip on your device.
 
 - Clone the library `git clone https://github.com/WXLyndon/grouch.git`
 
@@ -88,3 +88,4 @@ To run it, just do `python path/to/file.py`.
 
 From the CLI, run `python src/info.py [SEASON] CRN-1 CRN-2 ...` and a notification will be sent
 containing information for the class. This does not loop, unlike the tracker.
+
