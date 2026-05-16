@@ -28,7 +28,14 @@ To use this project, you need Python 3.10+ installed as well as pip on your devi
 
 - Open the root of the project and open a CLI (command line interface) like powershell
 
-- Install the necessary requirements `pip install -r requirements-<os>.txt` (note that mac users need to use requirements-unix.txt)
+- Install the necessary requirements `python -m pip install -r requirements-<os>.txt` (note that mac users need to use requirements-unix.txt)
+
+  If you are using `uv` and the project venv, run:
+
+  ```bash
+  uv venv
+  uv pip install -r requirements-unix.txt
+  ```
 
 And that's it! The library is now installed and ready to be used.
 
@@ -75,12 +82,15 @@ An example of a custom program would be
 
 ```python
 from courses import Course, WaitlistNotifier
+from terms import resolve_term
 
-myCourse = Course(crn, 'fall')
+myCourse = Course(crn, resolve_term('fall'))
 notif = WaitlistNotifier(myCourse)
 
 notif.run()
 ```
+
+You can also pass a Banner term code directly, such as `Course(crn, '202608')`.
 
 To run it, just do `python path/to/file.py`.
 

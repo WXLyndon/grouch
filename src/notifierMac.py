@@ -1,6 +1,5 @@
 import subprocess
-import os
-import time, pathlib
+import time
 
 CMD = '''
 on run argv
@@ -8,23 +7,27 @@ on run argv
 end run
 '''
 
-class Notifier:
-    def __always_true():
-        return True
+DEFAULT_CHECK_INTERVAL = 30
 
-    def __init__(self, title: str, info: str, state = __always_true):
+
+def always_true():
+    return True
+
+
+class Notifier:
+    def __init__(self, title: str, info: str, state=always_true):
         self.title, self.info = title, info
         self.status_check = state
-    
-    def send(self):
-        title = self.title
-        text = self.info
-        appleScriptNotification = 'display alert "{0} \n \n {1}" '.format(text, title)
-        os.system("osascript -e '{0}'".format(appleScriptNotification))
 
-    def run(self):
+    def send(self):
+        subprocess.run(
+            ["osascript", "-e", CMD, self.title, self.info],
+            check=False,
+        )
+
+    def run(self, check_interval=DEFAULT_CHECK_INTERVAL):
         while not self.status_check():
-            continue
+            time.sleep(check_interval)
         self.send()
 
     def run_async(self):

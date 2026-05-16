@@ -1,8 +1,12 @@
 from plyer import notification
 import time, pathlib
 
+DEFAULT_CHECK_INTERVAL = 30
+
+
 def always_true():
     return True
+
 
 class Notifier:
     def __init__(self, title: str, info: str, state=always_true):
@@ -19,9 +23,9 @@ class Notifier:
         )
         time.sleep(7)
 
-    def run(self):
+    def run(self, check_interval=DEFAULT_CHECK_INTERVAL):
         while not self.status_check():
-            continue
+            time.sleep(check_interval)
         self.send()
 
     def run_async(self):
