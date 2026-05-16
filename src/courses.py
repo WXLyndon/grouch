@@ -259,7 +259,7 @@ class CourseList:
                     else WaitlistNotifier(course)
                 )
                 print(course.format_registration_info(data))
-                notif.run_async()
+                notif.run_force()
             time.sleep(0.025)
 
     def run_available_courses(self):
@@ -272,7 +272,7 @@ class CourseList:
                     if platform.system() == "Darwin"
                     else OpenCourseNotifier(course)
                 )
-                notif.run_async()
+                notif.run_force()
             time.sleep(0.025)
 
     def run_notifiers(self):

@@ -144,6 +144,84 @@ class CourseListTests(unittest.TestCase):
 
         self.assertEqual(course.fetch_count, 1)
 
+    def test_run_available_courses_sends_from_cached_open_snapshot(self):
+        class FakeCourse:
+            crn = "12345"
+            term = "202608"
+            name = "Open Course"
+
+            def __init__(self):
+                self.fetch_count = 0
+
+            def get_registration_info(self, term):
+                self.fetch_count += 1
+                return {
+                    "seats": 1,
+                    "taken": 0,
+                    "vacant": 1,
+                    "waitlist": {"seats": 0, "taken": 0, "vacant": 0},
+                }
+
+            def format_registration_info(self, data):
+                return "formatted course info"
+
+            def is_open_from_info(self, data):
+                return data["vacant"] > 0
+
+            def is_open(self):
+                raise AssertionError("should not re-check course availability")
+
+        course = FakeCourse()
+        course_list = courses.CourseList([course])
+
+        with contextlib.redirect_stdout(io.StringIO()):
+            with patch.object(courses.platform, "system", return_value="Linux"):
+                with patch.object(courses.OpenCourseNotifier, "run_force") as run_force:
+                    with patch.object(courses.time, "sleep"):
+                        course_list.run_available_courses()
+
+        self.assertEqual(course.fetch_count, 1)
+        run_force.assert_called_once_with()
+
+    def test_run_waitlist_notifiers_sends_from_cached_waitlist_snapshot(self):
+        class FakeCourse:
+            crn = "12345"
+            term = "202608"
+            name = "Waitlist Course"
+
+            def __init__(self):
+                self.fetch_count = 0
+
+            def get_registration_info(self, term):
+                self.fetch_count += 1
+                return {
+                    "seats": 1,
+                    "taken": 1,
+                    "vacant": 0,
+                    "waitlist": {"seats": 3, "taken": 1, "vacant": 2},
+                }
+
+            def format_registration_info(self, data):
+                return "formatted course info"
+
+            def waitlist_available_from_info(self, data):
+                return data["waitlist"]["vacant"] > 0
+
+            def waitlist_available(self):
+                raise AssertionError("should not re-check waitlist availability")
+
+        course = FakeCourse()
+        course_list = courses.CourseList([course])
+
+        with contextlib.redirect_stdout(io.StringIO()):
+            with patch.object(courses.platform, "system", return_value="Linux"):
+                with patch.object(courses.WaitlistNotifier, "run_force") as run_force:
+                    with patch.object(courses.time, "sleep"):
+                        course_list.run_waitlist_notifiers()
+
+        self.assertEqual(course.fetch_count, 1)
+        run_force.assert_called_once_with()
+
 
 if __name__ == "__main__":
     unittest.main()

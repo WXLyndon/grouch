@@ -1,4 +1,5 @@
 import subprocess
+import sys
 import time
 
 CMD = '''
@@ -20,10 +21,17 @@ class Notifier:
         self.status_check = state
 
     def send(self):
-        subprocess.run(
+        result = subprocess.run(
             ["osascript", "-e", CMD, self.title, self.info],
             check=False,
+            capture_output=True,
+            text=True,
         )
+        if result.returncode != 0:
+            details = (result.stderr or result.stdout).strip()
+            if not details:
+                details = f"osascript exited with code {result.returncode}"
+            print(f"Warning: Could not send macOS notification: {details}", file=sys.stderr)
 
     def run(self, check_interval=DEFAULT_CHECK_INTERVAL):
         while not self.status_check():

@@ -46,11 +46,30 @@ class NotifierTests(unittest.TestCase):
         notif = notifierMac.Notifier(title, info)
 
         with patch.object(notifierMac.subprocess, "run") as run:
+            run.return_value.returncode = 0
             notif.send()
 
         run.assert_called_once_with(
             ["osascript", "-e", notifierMac.CMD, title, info],
             check=False,
+            capture_output=True,
+            text=True,
+        )
+
+    def test_mac_notifier_warns_when_subprocess_fails(self):
+        notif = notifierMac.Notifier("Title", "Info")
+
+        with patch.object(notifierMac.subprocess, "run") as run:
+            run.return_value.returncode = 1
+            run.return_value.stderr = "syntax error"
+            run.return_value.stdout = ""
+            with patch.object(notifierMac.sys, "stderr") as stderr:
+                with patch("builtins.print") as print_mock:
+                    notif.send()
+
+        print_mock.assert_called_once_with(
+            "Warning: Could not send macOS notification: syntax error",
+            file=stderr,
         )
 
 
